@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-computer-graphics
-=================
-
-Code Demo of Computer Graphics Course at Information Technology and Computer Science Program, University of Brawijaya
-=======
 # Computer Graphics
 Computer Graphics Course Example, Dept. Informatics, Faculty Computer Science, University of Brawijaya.  
 Please note that in this course we're used OpenGL version 1 (Fixed Function Pipeline)  
