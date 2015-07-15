@@ -25,12 +25,16 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package id.ac.ub.ptiik.computergraphics;
+package org.ubgamelab.computergraphics.util;
+
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.util.glu.GLU.*;
 
 import java.awt.Font;
 
 import org.lwjgl.LWJGLException;
 import org.lwjgl.Sys;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
 import org.newdawn.slick.Color;
@@ -72,7 +76,21 @@ public abstract class CGApplication {
 	protected boolean vsync;
 
 	/** Default Font */
-	protected TrueTypeFont defaultFont;
+	private TrueTypeFont defaultFont;
+
+	/** Font Color */
+	private Color fontColor;
+
+	/** Default Font Size */
+	public final int DEFAULT_FONT_SIZE = 14;
+
+	/** Show FPS */
+	protected boolean showFPS;
+
+	/** old FPS */
+	protected int oldfps;
+
+	protected int activeFontTextureId;
 
 	/**
 	 * Start and Running Application
@@ -89,13 +107,14 @@ public abstract class CGApplication {
 	 *            Title of Application Window
 	 * */
 	public void start(int width, int height, boolean fullscreen, boolean vsync,
-			String windowTitle) {
+			boolean showFPS, String windowTitle) {
 
 		this.windowTitle = windowTitle;
 		this.height = height;
 		this.width = width;
 		this.fullscreen = fullscreen;
 		this.vsync = vsync;
+		this.showFPS = showFPS;
 
 		try {
 			// Initialization
@@ -108,7 +127,8 @@ public abstract class CGApplication {
 			// Get Last Time
 			last = getTime();
 
-			while (!Display.isCloseRequested()) {
+			while (!Display.isCloseRequested()
+					&& !Keyboard.isKeyDown(Keyboard.KEY_ESCAPE)) {
 				// Get Delta
 				int delta = getDelta();
 
@@ -118,7 +138,7 @@ public abstract class CGApplication {
 
 				// Rendering
 				render();
-
+				drawFPS();
 				Display.update();
 			}
 
@@ -158,20 +178,106 @@ public abstract class CGApplication {
 	}
 
 	/**
+	 * Set Orthographic Projection
+	 */
+	private void setOrthoMode() {
+		glViewport(0, 0, width, height);
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		gluOrtho2D(0, width, height, 0);
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glLoadIdentity();
+	}
+
+	/**
+	 * Unset Orthographic Projection
+	 */
+	private void unsetOrthoMode() {
+		glPopMatrix();
+		glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
+		glMatrixMode(GL_MODELVIEW);
+	}
+
+	/**
+	 * Get Default Font
+	 * 
+	 * @return
+	 */
+	public TrueTypeFont getDefaultFont() {
+		return defaultFont;
+	}
+
+	/**
+	 * Set Default Font
+	 * 
+	 * @param defaultFont
+	 *            true type font
+	 */
+	public void setDefaultFont(TrueTypeFont defaultFont) {
+		this.defaultFont = defaultFont;
+	}
+
+	/**
 	 * Create Default Font
 	 */
 	private void createDefaultFont() {
-		Font awtFont = new Font("Times New Roman", Font.BOLD, 24);
+		Font awtFont = new Font("Lucida Console", Font.BOLD, DEFAULT_FONT_SIZE);
 		defaultFont = new TrueTypeFont(awtFont, true);
+		fontColor = Color.white;
+		activeFontTextureId = glGetInteger(GL_TEXTURE_BINDING_2D);
 	}
 
 	/**
 	 * Draw FPS
 	 */
 	private void drawFPS() {
-		Color.white.bind();
-		defaultFont.drawString(0, 0, "FPS : " + fps, Color.white);
+		if (showFPS) {
+			drawString(0, 0, "FPS : " + oldfps);
+		}
+	}
 
+	/**
+	 * Set Font color in red, green, blue values
+	 * 
+	 * @param r
+	 *            Red value
+	 * @param g
+	 *            Green value
+	 * @param b
+	 *            Blue value
+	 */
+	public void setFontColor(float r, float g, float b) {
+		fontColor = new Color(r, g, b);
+	}
+
+	/**
+	 * Draw string s at x,y. (0,0) is at bottom left corner of the screen
+	 * 
+	 * @param x
+	 *            X position
+	 * @param y
+	 *            Y position
+	 * @param s
+	 *            String to draw
+	 */
+	public void drawString(float x, float y, String s) {
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		setOrthoMode();
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, activeFontTextureId);
+		glPushMatrix();
+
+		y = height - y - defaultFont.getLineHeight();
+		defaultFont.drawString(x, y, s, fontColor);
+		glPopMatrix();
+		glDisable(GL_TEXTURE_2D);
+		glDisable(GL_BLEND);
+		unsetOrthoMode();
 	}
 
 	/**
@@ -201,11 +307,19 @@ public abstract class CGApplication {
 	 */
 	public void updateFPS() {
 		if (getTime() - last > 1000) {
-			// drawFPS();
+			oldfps = fps;
 			fps = 0;
 			last += 1000;
 		}
 		fps++;
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public int getFontSize() {
+		return getDefaultFont().getLineHeight();
 	}
 
 	/** Initialization Procedure */
