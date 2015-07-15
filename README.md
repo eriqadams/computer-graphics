@@ -15,5 +15,3 @@ Please note that in this course we're used OpenGL version 1 (Fixed Function Pipe
 11. Julia Fractal  
 12. Skybox and FPS Camera  
 
-
->>>>>>> origin/master
